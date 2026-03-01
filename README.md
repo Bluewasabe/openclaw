@@ -475,6 +475,218 @@ Use these when you’re past the onboarding flow and want the deeper reference.
 
 - [docs.openclaw.ai/gmail-pubsub](https://docs.openclaw.ai/automation/gmail-pubsub)
 
+## Developer Guide — Source Code Map
+
+Use this section to find **where to look** when you want to make a specific change.
+
+### Quick Reference: "I want to change X — where do I look?"
+
+| If you want to…                        | Look in                                | Key files to start with                        |
+|----------------------------------------|----------------------------------------|------------------------------------------------|
+| Add a new chat channel                 | `src/channels/`, `extensions/`         | `dock.ts`, `registry.ts`, `plugins/`           |
+| Add a CLI command                      | `src/commands/`, `src/cli/`            | `program.ts`, individual command files          |
+| Change message routing                 | `src/routing/`                         | `resolve-route.ts`, `session-key.ts`, `bindings.ts` |
+| Modify agent config/behavior           | `src/agents/`                          | `agent-scope.ts`, `models-config.ts`, `agent-paths.ts` |
+| Change gateway protocol/WS server      | `src/gateway/`                         | `client.ts`, `protocol/`, `auth.ts`, `server/` |
+| Add/change config options              | `src/config/`                          | `io.ts`, `validation.ts`, `types.*.ts`         |
+| Modify auto-reply logic                | `src/auto-reply/`                      | `dispatch.ts`, `reply/reply-dispatcher.ts`     |
+| Add a TTS provider                     | `src/tts/`                             | `tts.ts`, `tts-core.ts`, `prepare-text.ts`    |
+| Change browser automation              | `src/browser/`                         | `client.ts`, `cdp.ts`, `chrome.ts`            |
+| Add an embedding/memory provider       | `src/memory/`                          | `embeddings.ts`, `embeddings-openai.ts`, etc.  |
+| Modify security audits                 | `src/security/`                        | `audit.ts`, `audit-*.ts`, `dangerous-tools.ts` |
+| Change plugin system                   | `src/plugins/`                         | `loader.ts`, `hooks.ts`, `commands.ts`         |
+| Add scheduled jobs / cron              | `src/cron/`                            | `normalize.ts`, `schedule.ts`, `delivery.ts`   |
+| Modify terminal UI                     | `src/tui/`                             | `tui.ts`, `gateway-chat.ts`, `theme/`          |
+| Change Canvas host                     | `src/canvas-host/`                     | `server.ts`, `a2ui.ts`, `file-resolver.ts`     |
+| Modify session handling                | `src/sessions/`                        | `send-policy.ts`, `model-overrides.ts`         |
+| Work on macOS / iOS / Android apps     | `apps/`                                | `macos/`, `ios/`, `android/`, `shared/`        |
+| Add or modify skills                   | `skills/`                              | `SKILL.md` in each skill directory              |
+| Work on extensions                     | `extensions/`                          | Extension `package.json` + handler files        |
+| Change media handling                  | `src/media/`                           | `parse.ts`, `mime.ts`, `input-files.ts`        |
+| Work on Control UI (web)               | `ui/`                                  | Lit web components, `ui/src/`                  |
+| Change infrastructure / env loading    | `src/infra/`                           | `env.ts`, `binaries.ts`, `ports.ts`            |
+| Modify logging                         | `src/logging/`                         | Subsystem loggers, file output, levels          |
+| Change hooks / Gmail triggers          | `src/hooks/`                           | `hooks.ts`, `internal-hooks.ts`, Gmail watchers |
+| Modify ACP (Agent Protocol)            | `src/acp/`                             | `client.ts`, `event-mapper.ts`, `translator.ts`|
+
+### Project Structure
+
+```
+openclaw/
+├── apps/                           # Native platform apps
+│   ├── macos/                      #   macOS menu bar app (Swift)
+│   ├── ios/                        #   iOS node app
+│   ├── android/                    #   Android node app (Gradle)
+│   └── shared/                     #   Shared SDK (OpenClawKit)
+│
+├── src/                            # Core source code (~2,990 TS files)
+│   ├── entry.ts                    #   CLI bootstrap (process init, respawn, Node flags)
+│   ├── index.ts                    #   Main exports + global error handlers
+│   ├── globals.ts                  #   Global flags (verbose, yes) + theme
+│   ├── runtime.ts                  #   Abstract runtime env (log, exit, test stubs)
+│   ├── utils.ts                    #   Shared utilities (paths, E164, JID conversion)
+│   │
+│   ├── agents/                     #   Agent config, scope, models, sandbox, skills
+│   ├── gateway/                    #   WebSocket control plane + RPC protocol
+│   ├── auto-reply/                 #   Inbound message dispatch + reply queue
+│   ├── cli/                        #   Commander.js CLI program builder
+│   ├── commands/                   #   CLI command implementations (~197 files)
+│   ├── config/                     #   Config loading, validation, types (~148 files)
+│   ├── infra/                      #   Low-level: env, binaries, ports, TLS, device ID
+│   ├── channels/                   #   Channel adapters, allowlists, plugins, mentions
+│   ├── routing/                    #   Session + agent routing (resolve-route, bindings)
+│   ├── security/                   #   Security audits, dangerous tools, permissions
+│   │
+│   ├── telegram/                   #   Telegram bot (grammY)
+│   ├── discord/                    #   Discord bot (discord.js)
+│   ├── slack/                      #   Slack bot (Bolt)
+│   ├── signal/                     #   Signal integration (signal-cli)
+│   ├── imessage/                   #   iMessage (legacy macOS-only)
+│   ├── web/                        #   WhatsApp Web client (Baileys)
+│   │
+│   ├── browser/                    #   Browser automation (CDP, Chrome, profiles)
+│   ├── memory/                     #   Vector embeddings + semantic search
+│   ├── plugins/                    #   Plugin discovery, loading, hooks, commands
+│   ├── security/                   #   Audit orchestrator + checks
+│   ├── tts/                        #   Text-to-speech (OpenAI, ElevenLabs, Edge)
+│   ├── cron/                       #   Scheduled jobs (at/every/cron formats)
+│   ├── media/                      #   Media pipeline (parse, MIME, images, audio)
+│   ├── sessions/                   #   Session metadata, send policy, model overrides
+│   ├── hooks/                      #   Event hooks (Gmail, webhooks, triggers)
+│   ├── tui/                        #   Terminal UI (interactive chat, slash commands)
+│   ├── canvas-host/                #   Canvas HTTP/WS server + A2UI protocol
+│   ├── acp/                        #   Anthropic Agent Protocol client
+│   ├── logging/                    #   Structured logging subsystem
+│   ├── terminal/                   #   Terminal helpers (progress, colors, state)
+│   ├── process/                    #   Child process spawning, exec wrappers
+│   ├── providers/                  #   Model provider registry
+│   ├── shared/                     #   Shared interfaces
+│   ├── types/                      #   Central type exports
+│   └── test-utils/                 #   Test helpers + fixtures
+│
+├── extensions/                     # Channel extensions (36 total)
+│   ├── discord/                    #   Discord extension
+│   ├── telegram/                   #   Telegram extension
+│   ├── slack/                      #   Slack extension
+│   ├── msteams/                    #   Microsoft Teams
+│   ├── matrix/                     #   Matrix
+│   ├── signal/                     #   Signal
+│   ├── whatsapp/                   #   WhatsApp
+│   ├── zalo/                       #   Zalo
+│   ├── voice-call/                 #   Voice call
+│   └── ...                         #   (+ 27 more)
+│
+├── skills/                         # Agent skills (51 total)
+│   ├── github/                     #   GitHub integration
+│   ├── slack/                      #   Slack actions
+│   ├── obsidian/                   #   Obsidian notes
+│   ├── weather/                    #   Weather lookups
+│   ├── coding-agent/               #   Code generation
+│   └── ...                         #   (+ 46 more)
+│
+├── ui/                             # Control UI (Lit web components)
+├── docs/                           # Documentation (Mintlify → docs.openclaw.ai)
+├── packages/                       # pnpm workspace packages
+├── vendor/                         # Vendored dependencies
+├── scripts/                        # Build, test, deploy scripts
+├── test/                           # Integration / e2e tests
+│
+├── openclaw.mjs                    # CLI entry point (executable)
+├── package.json                    # Root manifest (version: YYYY.M.D)
+├── tsconfig.json                   # TypeScript config
+├── tsdown.config.ts                # Build config
+├── vitest.config.ts                # Test config
+├── .env.example                    # Environment variable template
+├── Dockerfile                      # Production container
+├── docker-compose.yml              # Docker orchestration
+├── fly.toml                        # Fly.io deployment
+└── render.yaml                     # Render.com deployment
+```
+
+### Module Descriptions
+
+#### Core Runtime
+
+| Module | Files | Description |
+|--------|-------|-------------|
+| `src/agents/` | ~337 | Agent orchestration: config resolution, model selection, workspace dirs, sandbox settings, skill loading, auth profiles, sub-agent registry |
+| `src/gateway/` | ~145 | WebSocket control plane: RPC protocol, server methods, authentication, config reload, event broadcasting, presence tracking |
+| `src/auto-reply/` | ~80 | Inbound message pipeline: command detection, permission checks, reply queue, typing indicators, buffered dispatch |
+| `src/cli/` | ~110 | CLI framework: Commander.js program builder, profile selection, argument parsing, browser/channel setup |
+| `src/commands/` | ~197 | CLI command implementations: agent, auth, browser, channels, config, doctor, gateway, message, models, nodes, onboard, pairing, send, skills |
+| `src/config/` | ~148 | Configuration system: JSON5 loading, Zod validation, session storage, 32+ type modules defining every config key |
+| `src/infra/` | ~170 | Infrastructure: environment variable loading, binary management, port checking, TLS fingerprints, device identity, home dir resolution |
+| `src/routing/` | ~30 | Message routing: maps inbound messages to agents based on channel, account, peer, guild/team ID, and role bindings |
+
+#### Channels
+
+| Module | Files | Description |
+|--------|-------|-------------|
+| `src/channels/` | ~60 | Shared channel infrastructure: dock (capabilities), registry, allowlists, plugins, mention handling, threading |
+| `src/telegram/` | ~40 | Telegram bot via grammY: polling, webhooks, group handling, media |
+| `src/discord/` | ~50 | Discord bot via discord.js: slash commands, threads, reactions, media |
+| `src/slack/` | ~35 | Slack bot via Bolt: socket mode, app tokens, channels, threads |
+| `src/signal/` | ~25 | Signal integration via signal-cli |
+| `src/imessage/` | ~20 | iMessage (legacy macOS-only, see BlueBubbles extension for recommended path) |
+| `src/web/` | ~40 | WhatsApp Web via Baileys: QR auth, message monitoring, auto-reply |
+
+#### Features
+
+| Module | Files | Description |
+|--------|-------|-------------|
+| `src/browser/` | ~84 | Browser automation: Chrome DevTools Protocol (CDP), profile management, snapshots, page interactions, screenshot labels |
+| `src/memory/` | ~58 | Vector memory: embeddings (OpenAI, Gemini, Voyage, llama.cpp), semantic search, QMD memory system |
+| `src/plugins/` | ~44 | Plugin system: discovery, loading, CLI registration, hook system, tool/command registry |
+| `src/security/` | ~30 | Security: audit orchestrator, channel/plugin/filesystem/tool checks, dangerous tool denylist |
+| `src/tts/` | ~20 | Text-to-speech: OpenAI, ElevenLabs, Edge TTS providers; voice selection, text preprocessing |
+| `src/cron/` | ~30 | Scheduled jobs: at/every/cron format parsing, delivery tracking, isolated agent turns |
+| `src/media/` | ~25 | Media pipeline: MEDIA token parsing, MIME detection, image ops, file input validation |
+| `src/sessions/` | ~15 | Session metadata: send policy, model overrides, log level overrides, input provenance |
+| `src/hooks/` | ~20 | Event hooks: Gmail Pub/Sub, webhook triggers, custom agent wake actions |
+| `src/tui/` | ~25 | Terminal UI: interactive chat via pi-tui, slash commands, gateway integration, themes |
+| `src/canvas-host/` | ~15 | Canvas server: HTTP/WS for agent-driven UI, A2UI protocol, sandboxed file serving, live reload |
+| `src/acp/` | ~10 | Agent Communication Protocol: SDK client, permission flows, session management, message translation |
+
+### Root Source Files
+
+| File | Purpose |
+|------|---------|
+| `src/entry.ts` | CLI bootstrap — process initialization, Node flag injection, respawn for experimental warnings, profile parsing |
+| `src/index.ts` | Main export — public API, global error handlers, unhandled rejection handling, console capture |
+| `src/globals.ts` | Global state — verbose/yes flags, theme exports, `logVerbose()`, `setVerbose()`, `isYes()` |
+| `src/runtime.ts` | Runtime abstraction — log/error/exit functions with default and non-exiting (test) implementations |
+| `src/utils.ts` | Shared utilities — path handling, E164 normalization, WhatsApp JID conversion, UTF-16 safety, config dir resolution |
+
+### Build & Test Config Files
+
+| File | Controls |
+|------|----------|
+| `tsconfig.json` | TypeScript: ES2023 target, NodeNext modules, strict mode, legacy decorators, path aliases for plugin SDK |
+| `tsdown.config.ts` | Build: entry points, platform=node, production env, plugin SDK + hooks bundling |
+| `vitest.config.ts` | Tests: V8 coverage (70% threshold), forks pool, 2min timeout, auto-scaling workers |
+| `vitest.unit.config.ts` | Unit tests only (excludes gateway + extensions) |
+| `vitest.e2e.config.ts` | E2E tests: vmForks pool, configurable workers via `OPENCLAW_E2E_WORKERS` |
+| `vitest.gateway.config.ts` | Gateway-specific tests |
+| `vitest.extensions.config.ts` | Extension/plugin tests |
+| `vitest.live.config.ts` | Live integration tests (real credentials, sequential, `LIVE=1`) |
+| `.oxlintrc.json` | Linting: unicorn + typescript + oxc plugins, `no-explicit-any: error`, `curly: error` |
+| `.oxfmtrc.jsonc` | Formatting: import sorting, package.json script sorting |
+| `.pre-commit-config.yaml` | Pre-commit hooks: trailing whitespace, secret detection, shellcheck, actionlint, oxlint, oxfmt |
+
+### Deployment Config Files
+
+| File | Purpose |
+|------|----------|
+| `Dockerfile` | Production build: Node 22, pnpm install, `pnpm build`, runs as non-root `node` user |
+| `Dockerfile.sandbox` | Agent sandbox: Debian slim, bash/curl/git/jq/python3/ripgrep, runs as `sandbox` user |
+| `Dockerfile.sandbox-browser` | Browser sandbox: Chromium + Xvfb + VNC + noVNC, ports 9222/5900/6080 |
+| `docker-compose.yml` | Orchestration: gateway + CLI services, port 18789/18790, volume mounts for config |
+| `fly.toml` | Fly.io: IAD region, shared-cpu-2x, 2GB RAM, persistent volume, auto HTTPS, force-start |
+| `fly.private.toml` | Fly.io (private): no public IP, access via `fly proxy` or WireGuard |
+| `render.yaml` | Render.com: starter plan, /health check, 1GB disk, auto-generated gateway token |
+
+---
+
 ## Molty
 
 OpenClaw was built for **Molty**, a space lobster AI assistant. 🦞
