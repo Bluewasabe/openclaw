@@ -76,6 +76,19 @@ services:
       - jarvis-net
     entrypoint: ["node", "dist/index.js"]
 
+  silverbullet:
+    image: silverbulletmd/silverbullet:latest
+    container_name: silverbullet
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ${OBSIDIAN_VAULT_DIR}:/space
+    environment:
+      - SB_USER=admin:${SB_PASSWORD:-changeme}
+    networks:
+      - jarvis-net
+
 networks:
   jarvis-net:
     external: true
